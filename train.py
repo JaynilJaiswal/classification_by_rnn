@@ -1,4 +1,3 @@
-
 from data import *
 from rnn import *
 
@@ -8,20 +7,6 @@ def categoryFromOutput(output):
     return all_categories[category_i], category_i
 
 import random
-
-def randomChoice(l):
-    return l[random.randint(0, len(l) - 1)]
-
-def randomTrainingExample():
-    category = randomChoice(all_categories)
-    line = randomChoice(category_lines[category])
-    category_tensor = torch.tensor([all_categories.index(category)], dtype=torch.long)
-    line_tensor = lineToTensor(line)
-    return category, line, category_tensor, line_tensor
-
-for i in range(10):
-    category, line, category_tensor, line_tensor = randomTrainingExample()
-    print('category =', category, '/ line =', line)
 
 criterion = nn.NLLLoss()
 n_hidden = 128
@@ -50,10 +35,10 @@ def train(category_tensor, line_tensor):
 
 import time
 import math
-
-n_iters = 100000
-print_every = 5000
-plot_every = 1000
+from random import shuffle
+n_iters = 10
+print_every = 2000
+plot_every = 2000
 
 
 
@@ -69,21 +54,23 @@ def timeSince(since):
     return '%dm %ds' % (m, s)
 
 start = time.time()
+shuffle(train_data)
+for epoch in range(1, n_iters + 1):
+    iter=0
+    for example in train_data:
+        category_tensor=torch.tensor([all_categories.index(example[0])],dtype=torch.long)
+        line_tensor=lineToTensor(example[1])
+        output, loss = train(category_tensor, line_tensor)
+        current_loss += loss
+        iter+=1
 
-for iter in range(1, n_iters + 1):
-    category, line, category_tensor, line_tensor = randomTrainingExample()
-    output, loss = train(category_tensor, line_tensor)
-    current_loss += loss
-
-    # Print iter number, loss, name and guess
-    if iter % print_every == 0:
-        guess, guess_i = categoryFromOutput(output)
-        correct = '✓' if guess == category else '✗ (%s)' % category
-        print('epoch %d %d%% (%s) %.4f %s / %s %s' % (iter, iter / n_iters * 100, timeSince(start), loss, line, guess, correct))
+        if iter % print_every == 0:
+            print('epoch %d %d%% (%s) %.4f' % (epoch, ( iter / len(train_data) )* 100, timeSince(start), loss))
 
     # Add current loss avg to list of losses
-    if iter % plot_every == 0:
-        all_losses.append(current_loss / plot_every)
-        current_loss = 0
+        if iter % plot_every == 0:
+            all_losses.append(current_loss / plot_every)
+            current_loss = 0
+
 
 torch.save(rnn,'classification.pt')

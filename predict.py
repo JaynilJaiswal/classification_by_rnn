@@ -1,8 +1,15 @@
 from rnn import *
 from data import *
+
+from torch.autograd import Variable
 import sys
 
 rnn = torch.load('classification.pt')
+
+def categoryFromOutput(output):
+    top_n, top_i = output.topk(1)
+    category_i = top_i[0].item()
+    return all_categories[category_i], category_i
 
 # Just return an output given a line
 def evaluate(line_tensor):
@@ -28,5 +35,15 @@ def predict(line, n_predictions=3):
 
     return predictions
 
-if __name__ == '__main__':
-    predict(sys.argv[1])
+
+num_correct=0
+for example in test_data:
+    line_tensor=lineToTensor(example[1])
+    category=example[0]
+    output=evaluate(line_tensor)
+    guess,guess_i=categoryFromOutput(output)
+    if guess == category:
+        num_correct+=1
+
+accuracy=num_correct*100/len(test_data)
+print('accuracy is %.4f%%' % (accuracy))
